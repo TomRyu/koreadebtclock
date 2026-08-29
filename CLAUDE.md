@@ -98,10 +98,16 @@ node scripts/audit-i18n.js      # 언어별 direct / overlay / FALLBACK 집계
 `yearly`/`daily` 누적 카운터의 경계는 한국 시각 기준이다. 해외 접속자도 "오늘·올해"가 한국 기준으로 맞는다.
 `core.js` 의 `startOfDay` / `startOfYear` / `yearLength` 를 쓰고, 로컬 시간대를 쓰지 말 것.
 
-### 5. 이 사이트는 스스로 갱신되지 않는다
+### 5. 재정 통계는 스스로 갱신되지 않는다
+
+봇이 갱신하는 것은 `data/live.js` 뿐이다 — 환율, (키가 있으면) 시장금리, 앵커.
+**`data/data.js` 의 재정 통계는 여전히 사람이 갱신해야 한다.**
+예산·세수·국가채무는 발표 형식이 해마다 달라 안정적으로 파싱할 수 없다.
 
 해가 바뀌면 `yearly` 카운터는 리셋되지만 **작년 증가율로** 다시 쌓이고, `base+rate` 지표는 무한 선형 연장된다.
 에러 없이 조용히 틀려지는 것이 가장 위험하다.
+
+봇이 매일 도는 것을 보고 "알아서 최신이겠지" 라고 넘기는 것이 앞으로 가장 하기 쉬운 실수다.
 
 `meta.fiscalYear` 를 넘긴 해가 되거나 `meta.updated` 로부터 10개월이 지나면 **상단에 경고 배너가 자동 노출**된다(`checkStale()`).
 통계를 갱신하면 `meta.updated` 와 `meta.fiscalYear` 를 **반드시 함께** 올려야 배너가 사라진다.
@@ -167,6 +173,9 @@ support.on  = false   // 의도적으로 꺼둔 상태 (사유는 파일 주석)
 | 긴 숫자가 판독창에서 잘림 | 원화는 자릿수가 매우 큼 | `fit()` 이 자릿수 변화 시에만 폰트를 줄인다. 매 프레임 재계산하지 말 것 |
 | 반올림 숫자에 `0000` 노이즈 | 조/억/만 3그룹 고정 출력 | 고정 금액 항목에 `compact: true` |
 | 비율끼리 배율로 비교 | 성장률·의존도·기대수명은 나눗셈이 무의미 | `nk.js` 에서 `diff: true` → `+1.7%p` 형태 |
+| **앵커에 사이트 자기 값이 들어감** | 화면에 뜬 인구를 그대로 `--anchor` 로 되먹임. 추정치가 '행안부 확정 공표치' 라벨을 달게 되고, 그 뒤로는 틀렸다는 걸 알아챌 방법이 없다 | `anchors` 에는 **공표 확정치만**. 출처 URL 을 확인하지 못했으면 `null` 로 두는 편이 낫다 |
+| **물가 상승률이 114.2%** | ECOS 에서 소비자물가 '지수(총지수)' 를 '전년동월비' 자리에 넣음. 에러 없이 그럴듯하게 틀린다 | `ECOS` 배열을 켜기 전에 반드시 `--dry` 로 값부터 볼 것 |
+| **봇 커밋과 로컬이 충돌** | Actions 가 매일 `data/live.js` 를 커밋한다. 모르고 로컬에서 작업하면 push 가 막힌다 | 작업 시작 전 `git pull`. `data/live.js` 는 **손으로 고치지 말 것** — 다음 봇 실행에 덮어써진다 |
 
 ---
 
@@ -212,12 +221,48 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
 
 ---
 
-## 배포
+## 배포 — 이미 되어 있다 (2026-08-30~)
 
-```bash
-npx vercel --prod                      # 또는
-npx netlify deploy --prod --dir .      # 또는 GitHub Pages (Settings → Pages → main / root)
-```
+| | |
+|---|---|
+| 사이트 | <https://tomryu.github.io/koreadebtclock/> |
+| 저장소 | <https://github.com/TomRyu/koreadebtclock> (공개) |
+| 방식 | GitHub Pages · `main` / root |
+| 봇 | Actions `update-live` · 매일 07:20 KST · `data/live.js` 를 갱신하고 바뀌면 커밋 |
+
+`main` 에 push 하면 Pages 가 자동 재빌드한다. 봇 커밋도 마찬가지라
+환율이 바뀌면 사이트가 스스로 갱신된다.
+
+**`문서/` 는 `.gitignore` 로 제외돼 있다.** Pages 가 저장소 루트를 그대로 서빙하므로
+커밋하면 운영 판단 기록이 URL 로 노출된다. 백업이 필요하면 별도 비공개 저장소로 둘 것.
 
 `data.js` 를 `fetch` 가 아니라 `<script>` 로 불러오므로 `file://` 에서도 그대로 동작한다.
-`문서/` 폴더는 운영 판단 기록이며 배포 대상이 아니다.
+다만 **`assets/js/live.js` 의 실시간 환율만은 `file://` 에서 돌지 않는다**(CORS).
+로컬에서 그 경로까지 확인하려면 HTTP 로 띄울 것.
+
+```bash
+python3 -m http.server 8787 --bind 127.0.0.1
+```
+
+공개 저장소로 둔 이유는 무료 계정에서 Pages 를 쓰기 위해서다.
+되돌리려면 `gh repo edit --visibility private` (그 경우 Pages 대신 Vercel/Netlify 를 쓴다).
+
+### 자동 갱신 봇에 값 넣기
+
+```bash
+node scripts/update-live.js --dry     # 파일을 안 건드리고 결과만
+node scripts/update-live.js           # 환율 갱신
+
+# 월별 확정 공표치를 앵커로 (행안부 주민등록 인구 등)
+node scripts/update-live.js --anchor population=51234567@2026-08-01
+
+# 한국은행 ECOS 키가 있으면 기준금리·국고채도 함께
+ECOS_API_KEY=... node scripts/update-live.js --dry
+```
+
+ECOS 키는 저장소 **Settings → Secrets and variables → Actions** 에 `ECOS_API_KEY` 로
+넣으면 워크플로가 자동으로 쓴다. 없으면 환율만 갱신하고 조용히 넘어간다.
+
+봇의 설계 원칙은 하나다 — **실패하면 이전 값을 남긴다.** 값이 상식 밖이거나
+파일 구조가 다르면 아무것도 쓰지 않고, 워크플로도 빨갛게 만들지 않는다.
+낡은 값이 잘못된 값보다 낫기 때문이다.
