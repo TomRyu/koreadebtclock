@@ -318,8 +318,19 @@ assets/js/live.js        브라우저가 열릴 때 환율만 실시간 fetch (6
 
 ```bash
 node scripts/update-live.js --dry     # 파일을 안 건드리고 결과만 출력
-node scripts/update-live.js           # data/live.js 갱신
+node scripts/update-live.js           # 환율 갱신
+
+# 월별 확정 공표치를 앵커로 박습니다 (행안부 주민등록 인구통계 등).
+# 앵커가 들어오면 연초 기준값 대신 그 시점부터 외삽하므로 오차가 크게 줄어듭니다.
+node scripts/update-live.js --anchor population=51234567@2026-08-01
+
+# 한국은행 ECOS 키가 있으면 시장금리도 함께 갱신합니다.
+ECOS_API_KEY=... node scripts/update-live.js --dry
 ```
+
+**앵커에는 반드시 공표 확정치만 넣으십시오.** 사이트가 계산해 보여 준 값을 그대로
+되먹이면 추정치가 '확정 공표치' 라벨을 달게 되고, 이후로는 그게 틀렸다는 걸
+알아챌 방법이 없어집니다.
 
 값이 상식 밖이거나(원/달러가 500~5000원 밖) 파일 구조가 예상과 다르면 **아무것도 쓰지 않습니다.**
 조용히 틀린 값이 들어가는 것이 갱신이 안 되는 것보다 훨씬 위험하기 때문입니다.
@@ -329,15 +340,26 @@ node scripts/update-live.js           # data/live.js 갱신
 | 대상 | 상태 | 출처 |
 |---|---|---|
 | 환율 24개 통화 | **자동** | open.er-api → frankfurter (키 불필요) |
-| 기준금리 · 국고채 3년/10년 · 물가 · 코스피 | 수동 (`live.js` 의 `ind`) | 한국은행 [ECOS OpenAPI](https://ecos.bok.or.kr/api/) (키 무료) |
-| 주민등록 인구 · 세대 (`anchors`) | 수동 | 행정안전부 (공공데이터포털) |
-| 인구 · 출생 · 사망 · 취업자 | 수동 | 통계청 [KOSIS OpenAPI](https://kosis.kr/openapi/) |
+| 기준금리 · 국고채 3년/10년 | **구현됨 · 키 필요** | 한국은행 [ECOS OpenAPI](https://ecos.bok.or.kr/api/) (무료) |
+| 소비자물가 · 외환보유액 | 통계표 코드 미확인 (`ECOS` 배열의 `on: false`) | 〃 |
+| 주민등록 인구 · 세대 (`anchors`) | `--anchor` 로 반자동 | 행정안전부 (공공데이터포털) |
+| 코스피 | 수동 (`live.js` 의 `ind`) | — |
+| 인구동향 · 취업자 | 수동 | 통계청 [KOSIS OpenAPI](https://kosis.kr/openapi/) |
+
+ECOS 키를 저장소 **Settings → Secrets and variables → Actions** 에 `ECOS_API_KEY` 로
+등록하면 워크플로가 금리도 함께 갱신합니다. 키가 없으면 환율만 갱신하고 조용히 넘어갑니다.
+
+`scripts/update-live.js` 의 `ECOS` 배열에 있는 통계표·항목 코드는 **아직 공표 실적과
+대조되지 않았습니다.** 켜기 전에 `--dry` 로 먼저 값을 확인하십시오. 특히 소비자물가는
+'전년동월비' 표를 써야 하며, 지수(총지수)를 그대로 넣으면 화면에
+'소비자물가 상승률 114.2%' 같은 값이 뜹니다.
 
 **재정(예산·세수·국가채무)은 사실상 수동입니다.** 예산은 매년 8~9월 국회 제출 → 12월 확정이라
 발표 형식이 해마다 달라져 API로 안정적으로 파싱하기 어렵습니다.
 
-ECOS 를 붙이신다면 `scripts/update-live.js` 에 `ind` 갱신 단계를 더하고,
-**실패해도 이전 값을 남기도록** 하십시오 — 워크플로가 빨개지는 것보다 낡은 값이 낫습니다.
+설계 원칙은 하나입니다 — **실패하면 이전 값을 남긴다.** 워크플로가 빨개지는 것보다
+낡은 값이 낫고, 낡은 값이 잘못된 값보다 낫습니다. 값마다 상식 범위(`min`/`max`)를 두고
+벗어나면 버립니다.
 
 ---
 
