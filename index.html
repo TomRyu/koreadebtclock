@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>대한민국 부채시계 — Korea Debt Clock</title>
+<meta name="description" content="대한민국의 국가채무·가계부채·재정·세금·인구·연금을 실시간으로 보여주는 부채시계와 연도별·정권별 증가율. 한국어·English·日本語·中文.">
+<meta name="theme-color" content="#000000">
+<meta property="og:type" content="website">
+<meta property="og:title" content="대한민국 부채시계 — Korea Debt Clock">
+<meta property="og:description" content="지금 이 순간에도 늘어나는 대한민국의 나랏빚, 실시간으로 확인하세요.">
+<meta property="og:url" content="https://koreadebtclock.org/">
+<meta property="og:image" content="https://koreadebtclock.org/assets/img/flag-kr.png">
+<meta property="og:site_name" content="koreadebtclock.org">
+<link rel="canonical" href="https://koreadebtclock.org/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='-72 -48 144 96'><path fill='%23fff' d='M-72-48v96H72v-96z'/><g transform='rotate(33.69)'><path fill='%23cd2e3a' d='M12 0a18 18 0 11-36 0 24 24 0 1148 0'/><path fill='%230047a0' d='M-24 0a24 24 0 1048 0A12 12 0 100 0a12 12 0 11-24 0'/></g></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@600;700;800&family=Noto+Sans+KR:wght@500;700;800&family=Noto+Sans+JP:wght@500;700&family=Noto+Sans+SC:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<div class="board">
+
+  <!-- ================= 헤더 ================= -->
+  <header class="hdr">
+    <div class="hdr-l">
+      <button type="button" class="btn on" id="navClock" data-view="clock">부채시계</button>
+      <button type="button" class="btn g"  id="navGrowth" data-view="growth">증가율</button>
+      <button type="button" class="btn b"  id="navCompare" data-view="compare">남북 비교</button>
+      <button type="button" class="btn d"  id="navJp" data-view="jp">한일 비교</button>
+      <button type="button" class="btn k sm" id="btnUnit" aria-pressed="false">전체 자릿수</button>
+      <button type="button" class="btn k sm" id="btnPause" aria-pressed="false">일시정지</button>
+      <button type="button" class="btn d sm" id="btnSupport" data-sup="open" hidden>후원하기</button>
+    </div>
+
+    <!-- 사이트 중앙 명판 + 태극기 -->
+    <div class="logo">
+      <img class="flag" src="assets/img/flag-kr.svg" width="1800" height="1200" alt="대한민국 국기" decoding="async">
+      <div class="logo-t">
+        <b id="logoTitle">대한민국 부채시계</b>
+        <i>koreadebtclock.org</i>
+      </div>
+    </div>
+
+    <div class="hdr-r">
+      <span id="langBtns"></span>
+      <!-- 통화 선택기 바로 옆. 원화를 보고 있으면 숨는다 -->
+      <span class="fxtag" id="fxTag" hidden></span>
+      <label class="btn k sm" style="cursor:pointer">
+        <span id="tmLabel">타임머신</span>
+        <select id="tmYear" style="border:0;background:transparent;font:inherit;font-weight:800;cursor:pointer">
+          <option value="now" selected>—</option>
+        </select>
+      </label>
+      <span class="clock"><span id="clock">--:--:--</span><em id="clockDate"></em></span>
+    </div>
+  </header>
+
+  <div class="stalebar" id="stalebar" role="alert" hidden></div>
+  <div class="tmbar" id="tmbar" hidden></div>
+
+  <!-- ================= 화면 1 : 부채시계 ================= -->
+  <section class="view on" id="v-clock">
+    <div class="hero" id="hero"></div>
+    <div class="adbox" id="ad-mid" hidden></div>
+    <div class="panels" id="panels"></div>
+  </section>
+
+  <!-- ================= 화면 2 : 증가율 ================= -->
+  <section class="view" id="v-growth">
+    <div class="gr-head">
+      <h1 id="grTitle">연도별 · 정권별 증가율</h1>
+      <p id="grIntro"></p>
+    </div>
+    <div class="picker" id="picker"></div>
+    <div id="charts"></div>
+    <div class="adbox" id="ad-growth" hidden></div>
+  </section>
+
+  <!-- ================= 화면 3 : 남북 비교 ================= -->
+  <section class="view" id="v-compare">
+    <div class="gr-head">
+      <h1 id="cmpTitle">남북 규모 비교</h1>
+    </div>
+    <div class="caveat"><b id="caveatTag"></b><span id="caveatTxt"></span></div>
+    <div id="cmp"></div>
+    <div class="adbox" id="ad-cmp" hidden></div>
+  </section>
+
+  <!-- ================= 화면 4 : 한일 비교 ================= -->
+  <section class="view" id="v-jp">
+    <div class="gr-head">
+      <h1 id="jpTitle">한일 재정 · 인구 비교</h1>
+    </div>
+    <div class="caveat"><b id="jpCaveatTag"></b><span id="jpCaveatTxt"></span></div>
+    <div id="jpcmp"></div>
+    <div class="adbox" id="ad-jp" hidden></div>
+  </section>
+
+  <!-- ================= 하단 ================= -->
+  <div class="adbox" id="ad-foot" hidden></div>
+
+  <footer class="foot">
+    <div class="how">
+      <h2 id="howTitle"></h2>
+      <p id="how1"></p>
+      <pre class="formula" id="formula"></pre>
+      <p id="how2"></p>
+    </div>
+    <p id="disclaimer" style="margin-top:12px"></p>
+    <p><b id="srcLabel"></b> — 기획재정부 열린재정 · 한국은행 ECOS · 통계청 KOSIS · 행정안전부 주민등록 인구통계 · 국민연금공단 · 국민건강보험공단</p>
+    <p id="fxNote"></p>
+    <p><span id="basisLabel"></span> <b id="updated">—</b> · © <span id="year"></span> koreadebtclock.org · <span id="funding"></span></p>
+    <nav class="legal-links" id="legalLinks"></nav>
+  </footer>
+
+</div>
+
+<div class="tt" id="tt" role="tooltip"></div>
+
+<script src="data/i18n.js"></script>
+<script src="data/ui.js"></script>
+<script src="data/ui-long.js"></script>
+<script src="data/labels.js"></script>
+<script src="data/labels-debt.js"></script>
+<script src="data/labels-econ.js"></script>
+<script src="data/labels-more.js"></script>
+<script src="data/labels-jp.js"></script>
+<script src="data/labels-time.js"></script>
+<!-- live.js 는 core.js 가 초기화 때 환율을 읽으므로 반드시 그 앞에 온다 -->
+<script src="data/live.js"></script>
+<script src="assets/js/core.js"></script>
+<script src="data/data.js"></script>
+<script src="data/history.js"></script>
+<script src="data/nk.js"></script>
+<script src="data/jp.js"></script>
+<script src="data/support.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/support.js"></script>
+<script src="assets/js/live.js"></script>
+</body>
+</html>
