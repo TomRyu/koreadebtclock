@@ -17,7 +17,7 @@
 window.ROK_LIVE = {
 
   /* 이 파일이 마지막으로 갱신된 날 (봇이 덮어씀) */
-  updated: '2026-11-25',
+  updated: '2026-11-26',
 
   /* 값의 출처 — 'seed'(사람이 넣은 씨앗) | 'bot'(Actions) | 'browser'(fetch) */
   source: 'bot',
@@ -28,7 +28,7 @@ window.ROK_LIVE = {
         i18n.js 의 fx 와 data.js 의 '원/달러 환율' 이 따로 놀면
         사이트가 자기모순에 빠집니다. data.js 쪽은 이제 이 값을 읽습니다.
      ----------------------------------------------------------- */
-  fxUpdated: '2026-11-25',
+  fxUpdated: '2026-11-26',
   fx: {
     USD: 1342,   EUR: 1473,   JPY: 8.44,   CNY: 201,    GBP: 1761,
     TWD: 40.76,  INR: 14.45,  BRL: 227.9,  RUB: 16.39,  IDR: 0.0737,
